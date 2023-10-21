@@ -26,8 +26,9 @@
 //! let b_eq = array![1.];
 //! let c = array![-1., 4.];
 //!
-//! let res = LinearProgram::new(c.view())
-//!     // If you define neither equality nor inequality constraints, the problem returns as unconstrained.
+//! let res = LinearProgram::target(c.view())
+//!     // If you define neither equality nor inequality constraints,
+//!     // the problem returns as unconstrained.
 //!     .ub(A_ub.view(), b_ub.view())
 //!     .eq(A_eq.view(), b_eq.view())
 //!     // These are the default values you can overwrite.
