@@ -53,7 +53,8 @@
 //! This package comes with the option to use BLAS-based solvers for systems of equations. To enable BLAS, set the `blas`
 //! feature.
 
+pub mod error;
 pub(crate) mod float;
-pub(crate) mod linprog;
+mod interior_point;
 
-pub use linprog::{EquationSolverType, LinearProgram};
+pub use interior_point::linprog::{EquationSolverType, LinearProgram};
