@@ -27,16 +27,15 @@ impl<F: Float> Delta<F> {
         rhat: &Rhat<F>,
         problem: &Problem<F>,
         solver: EquationsSolver<F>,
-        Dinv: &Array1<F>,
-        M: &Array2<F>,
     ) -> Result<(Delta<F>, EquationsSolver<F>), LinearProgramError<F>> {
-        let (p, q, u, v, new_solver) = solver.solve_round(Dinv, problem, &point.x, rhat, M)?;
+        let (newton, new_solver) = solver.solve_newton_equations(problem, &point.x, rhat)?;
         // [1] Results after 8.29
         let d_tau = (rhat.g + F::one() / point.tau * rhat.tk
-            - (-problem.c.dot(&u) + problem.b.dot(&v)))
-            / (F::one() / point.tau * point.kappa + (-problem.c.dot(&p) + problem.b.dot(&q)));
-        let d_x = u + p * d_tau;
-        let d_y = v + q * d_tau;
+            - (-problem.c.dot(&newton.u) + problem.b.dot(&newton.v)))
+            / (F::one() / point.tau * point.kappa
+                + (-problem.c.dot(&newton.p) + problem.b.dot(&newton.q)));
+        let d_x = newton.u + newton.p * d_tau;
+        let d_y = newton.v + newton.q * d_tau;
 
         // [1] Relations between  after 8.25 and 8.26
         let d_z = (&rhat.xs - &point.z * &d_x) / &point.x;

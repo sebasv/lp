@@ -150,19 +150,13 @@ impl<F: Float> FeasiblePoint<F> {
         let r_G = problem.c.dot(&self.x) - problem.b.t().dot(&self.y) + self.kappa;
         let mu = (self.x.dot(&self.z) + self.tau * self.kappa) / F::cast(n_x + 1);
 
-        //  Assemble M from [1] Equation 8.31
-        let Dinv = &self.x / &self.z;
-        let M = problem
-            .A
-            .dot(&(&Dinv.clone().insert_axis(ndarray::Axis(1)) * &problem.A.t()));
-
         let initial_solver = solver_type
-            .build(&M)
+            .build(&self, &problem)
             .or(Err(LinearProgramError::NumericalProblem))?;
 
         let rhat = Rhat::predictor(&r_P, &r_D, r_G, eta, self, gamma, mu);
         let (predictor_delta, predictor_solver) =
-            Delta::compute(self, &rhat, problem, initial_solver, &Dinv, &M)?;
+            Delta::compute(self, &rhat, problem, initial_solver)?;
 
         // [1] 8.12 and "Let alpha be the maximal possible step..." before 8.23
         let alpha = self.get_step_size(&predictor_delta, F::one());
@@ -180,7 +174,7 @@ impl<F: Float> FeasiblePoint<F> {
             alpha,
             ip,
         );
-        let (delta, _) = Delta::compute(self, &rhat, problem, predictor_solver, &Dinv, &M)?;
+        let (delta, _) = Delta::compute(self, &rhat, problem, predictor_solver)?;
 
         Ok(delta)
     }
