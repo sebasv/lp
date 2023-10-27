@@ -1,24 +1,25 @@
 #![allow(non_snake_case)]
 #[cfg(not(feature = "blas"))]
-use linfa_linalg::{cholesky::Cholesky, cholesky::SolveCInplace, qr::QRDecomp, LinalgError};
+use crate::float::Lapack;
+#[cfg(not(feature = "blas"))]
+use linfa_linalg::{
+    cholesky::Cholesky,
+    cholesky::SolveCInplace,
+    qr::{QRDecomp, QR},
+    LinalgError,
+};
 #[cfg(feature = "blas")]
-use ndarray_linalg::LeastSquaresSvdInto;
-#[cfg(feature = "blas")]
-use ndarray_linalg::SolveH;
+use ndarray_linalg::{
+    error::LinalgError, FactorizeC, LeastSquaresSvdInto, QRSquare, SolveC, QR, UPLO,
+};
+use ndarray_linalg::{CholeskyFactorized, Factorize, LUFactorized, LeastSquaresSvd, Solve};
 
-use crate::error::LinearProgramError;
-use linfa_linalg::qr::QR;
-
-use crate::linear_program::Problem;
-
-use ndarray::Array1;
-use ndarray::Axis;
-
-use crate::float::Float;
-
+use ndarray::prelude::*;
 use ndarray::OwnedRepr;
 
-use ndarray::Array2;
+use crate::error::LinearProgramError;
+use crate::float::Float;
+use crate::linear_program::Problem;
 
 use super::feasible_point::FeasiblePoint;
 use super::rhat::Rhat;
@@ -45,7 +46,7 @@ impl EquationSolverType {
         &self,
         point: &FeasiblePoint<F>,
         problem: &Problem<F>,
-    ) -> Result<EquationsSolver<F>, LinalgError> {
+    ) -> Result<EquationsSolver<F>, LinearProgramError<F>> {
         //  Assemble M from [1] Equation 8.31
         let Dinv = &point.x / &point.z;
         let M = problem
@@ -56,11 +57,54 @@ impl EquationSolverType {
             EquationSolverType::Inverse => EquationsSolver::inv(M, Dinv),
             EquationSolverType::LeastSquares => EquationsSolver::least_squares(M, Dinv),
         }
+        .or(Err(LinearProgramError::NumericalProblem))
     }
 }
 
+#[cfg(feature = "blas")]
+pub(crate) enum EquationsSolver<F: Float> {
+    Cholesky {
+        factor: CholeskyFactorized<OwnedRepr<F>>,
+        M: Array2<F>,
+        Dinv: Array1<F>,
+    },
+    Inv {
+        factor: LUFactorized<OwnedRepr<F>>,
+        M: Array2<F>,
+        Dinv: Array1<F>,
+    },
+    LstSq {
+        M: Array2<F>,
+        Dinv: Array1<F>,
+    },
+}
+
+#[cfg(feature = "blas")]
+impl<F: Float> EquationsSolver<F> {
+    fn cholesky(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
+        let factor = M.factorizec(UPLO::Upper)?;
+        Ok(EquationsSolver::Cholesky { factor, M, Dinv })
+    }
+    fn inv(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
+        let factor = M.factorize()?;
+        Ok(EquationsSolver::Inv { factor, M, Dinv }) // TODO can do with buffering, maybe QR
+    }
+    fn least_squares(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
+        Ok(EquationsSolver::LstSq { M, Dinv }) // TODO can do with buffering, maybe QR
+    }
+    fn solve(&mut self, b: &Array1<F>) -> Result<Array1<F>, LinalgError> {
+        match self {
+            EquationsSolver::Cholesky { factor, .. } => factor.solvec(b),
+            EquationsSolver::Inv { factor, .. } => factor.solve(b),
+            EquationsSolver::LstSq { M, .. } => M.least_squares(b).map(|r| r.solution),
+        }
+    }
+}
+
+#[cfg(not(feature = "blas"))]
 pub(crate) enum EquationsSolver<F> {
     Cholesky {
+        factor: CholeskyFactorized<OwnedRepr<F>>,
         factor: Array2<F>,
         M: Array2<F>,
         Dinv: Array1<F>,
@@ -78,31 +122,17 @@ pub(crate) enum EquationsSolver<F> {
     },
 }
 
+#[cfg(not(feature = "blas"))]
 impl<F: Float> EquationsSolver<F> {
-    pub(crate) fn cholesky(
-        M: Array2<F>,
-        Dinv: Array1<F>,
-    ) -> Result<EquationsSolver<F>, LinalgError> {
-        #[cfg(feature = "blas")]
-        let factor = M.factorizeh_into()?;
-        #[cfg(not(feature = "blas"))]
+    fn cholesky(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
         let factor = M.cholesky()?;
         Ok(EquationsSolver::Cholesky { factor, M, Dinv })
     }
-    pub(crate) fn inv(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
-        #[cfg(feature = "blas")]
-        let factor = M.factorize_into()?;
-        #[cfg(not(feature = "blas"))]
+    fn inv(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
         let factor = M.qr()?;
         Ok(EquationsSolver::Inv { factor, M, Dinv }) // TODO can do with buffering, maybe QR
     }
-    pub(crate) fn least_squares(
-        M: Array2<F>,
-        Dinv: Array1<F>,
-    ) -> Result<EquationsSolver<F>, LinalgError> {
-        #[cfg(feature = "blas")]
-        let factor = M.factorize_into()?;
-        #[cfg(not(feature = "blas"))]
+    fn least_squares(M: Array2<F>, Dinv: Array1<F>) -> Result<EquationsSolver<F>, LinalgError> {
         let (factor, transposed) = if M.nrows() >= M.ncols() {
             (M.qr()?, false)
         } else {
@@ -115,17 +145,9 @@ impl<F: Float> EquationsSolver<F> {
             Dinv,
         }) // TODO can do with buffering, maybe QR
     }
-    pub(crate) fn solve(&mut self, b: &Array1<F>) -> Result<Array1<F>, LinalgError> {
+
+    fn solve(&mut self, b: &Array1<F>) -> Result<Array1<F>, LinalgError> {
         let b2 = b.view().insert_axis(Axis(1)).into_owned();
-        #[cfg(feature = "blas")]
-        match self {
-            EquationsSolver::Cholesky(A) | EquationsSolver::SymPos(A) => {
-                A.solveh_into(b2).remove_axis(Axis(1))
-            }
-            EquationsSolver::Inv(A) => A.solve_into(b2),
-            EquationsSolver::LstSq(A) => Ok(A.least_squares_into(b2)?.remove_axis(Axis(1))),
-        }
-        #[cfg(not(feature = "blas"))]
         let solved = match self {
             EquationsSolver::Cholesky { factor, .. } => factor.solvec_into(b2)?,
             EquationsSolver::Inv { factor, .. } => factor.solve_into(b2)?,
@@ -143,7 +165,9 @@ impl<F: Float> EquationsSolver<F> {
         };
         Ok(solved.remove_axis(Axis(1)))
     }
+}
 
+impl<F: Float> EquationsSolver<F> {
     /// Attempt to solve a system of equations with the specified solver. If solving fails, retry with the next solver.
     /// If all solvers fail, a solver failed to be even created or we observe NaN in the output, fail with a NumericalProblem
     /// error.

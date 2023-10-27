@@ -39,7 +39,7 @@
 //!
 //!     // These are the default values you can overwrite.
 //!     // You may omit any option for which the default is good enough for you
-//! let solver = InteriorPoint::default()
+//! let solver = InteriorPoint::custom()
 //!     .solver_type(EquationSolverType::Cholesky)
 //!     .tol(1e-8)
 //!     .disp(false)
@@ -71,7 +71,6 @@ pub use linear_program::{OptimizeResult, Problem, ProblemBuilder};
 #[allow(non_snake_case)]
 #[cfg(test)]
 mod tests {
-    use crate::solvers::InteriorPoint;
     use crate::Problem;
     use approx::assert_abs_diff_eq;
     use ndarray::array;
@@ -100,8 +99,9 @@ mod tests {
 
     #[test]
     fn test_interior_point_interface() {
+        use crate::solvers::InteriorPoint;
         let problem = make_problem();
-        let solver = InteriorPoint::builder().build().unwrap();
+        let solver = InteriorPoint::custom().build().unwrap();
         let res = solver.solve(&problem).unwrap();
 
         assert_abs_diff_eq!(*res.x(), array![1., 0.], epsilon = 1e-6);

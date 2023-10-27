@@ -130,9 +130,7 @@ impl<F: Float> FeasiblePoint<F> {
         let r_G = problem.c().dot(&self.x) - problem.b().t().dot(&self.y) + self.kappa;
         let mu = (self.x.dot(&self.z) + self.tau * self.kappa) / F::cast(n_x + 1);
 
-        let initial_solver = solver_type
-            .build(self, problem)
-            .or(Err(LinearProgramError::NumericalProblem))?;
+        let initial_solver = solver_type.build(self, problem)?;
 
         let rhat = Rhat::predictor(&r_P, &r_D, r_G, eta, self, gamma, mu);
         let (predictor_delta, predictor_solver) =
@@ -168,6 +166,6 @@ fn update_gamma<F: Float>(ip: bool, alpha: F) -> F {
     } else {
         // predictor-corrector, [1] definition after 8.12
         let beta1 = F::cast(0.1); // [1] pg. 220 (Table 8.1)
-        (F::one() - alpha).powi(2) * beta1.min(F::one() - alpha)
+        Float::powi(F::one() - alpha, 2) * beta1.min(F::one() - alpha)
     }
 }

@@ -51,11 +51,12 @@ impl<F: Float> Rhat<F> {
         let (rhatxs, rhattk) = if ip {
             // Reference [1] Eq. 8.23
             (
-                &(&point.x * -F::one()) * &point.z - &(&delta.d_x * &delta.d_z) * alpha.powi(2)
+                &(&point.x * -F::one()) * &point.z
+                    - &(&delta.d_x * &delta.d_z) * Float::powi(alpha, 2)
                     + (F::one() - alpha) * gamma * mu,
                 (F::one() - alpha) * gamma * mu
                     - point.tau * point.kappa
-                    - alpha.powi(2) * delta.d_tau * delta.d_kappa,
+                    - Float::powi(alpha, 2) * delta.d_tau * delta.d_kappa,
             )
         } else {
             (
