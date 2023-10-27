@@ -1,15 +1,11 @@
 #![allow(non_snake_case)]
 use crate::error::LinearProgramError;
-
-use ndarray::Array2;
-
-use super::newton_equations::EquationsSolver;
-
-use super::feasible_point::FeasiblePoint;
-use super::rhat::Rhat;
+use crate::float::Float;
 use crate::linear_program::Problem;
 
-use crate::float::Float;
+use super::feasible_point::FeasiblePoint;
+use super::newton_equations::EquationsSolver;
+use super::rhat::Rhat;
 
 use ndarray::Array1;
 

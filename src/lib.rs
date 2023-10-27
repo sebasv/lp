@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_interior_point_interface() {
         let problem = make_problem();
-        let solver = InteriorPoint::default().build().unwrap();
+        let solver = InteriorPoint::builder().build().unwrap();
         let res = solver.solve(&problem).unwrap();
 
         assert_abs_diff_eq!(*res.x(), array![1., 0.], epsilon = 1e-6);

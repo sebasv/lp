@@ -131,7 +131,7 @@ impl<F: Float> FeasiblePoint<F> {
         let mu = (self.x.dot(&self.z) + self.tau * self.kappa) / F::cast(n_x + 1);
 
         let initial_solver = solver_type
-            .build(&self, &problem)
+            .build(self, problem)
             .or(Err(LinearProgramError::NumericalProblem))?;
 
         let rhat = Rhat::predictor(&r_P, &r_D, r_G, eta, self, gamma, mu);

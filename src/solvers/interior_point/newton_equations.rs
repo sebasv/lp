@@ -34,6 +34,7 @@ use super::rhat::Rhat;
 /// Every fallback is expensive because a new decomposition must be calculated. If your problem is prone to frequently
 /// falling back to more robust equation solvers, you can set the initial equation solver to a more robust choice
 /// such that less fallbacks happen.
+#[derive(PartialEq, Eq, Debug)]
 pub enum EquationSolverType {
     Cholesky,
     Inverse,
@@ -72,7 +73,7 @@ pub(crate) enum EquationsSolver<F> {
     LstSq {
         factor: QRDecomp<F, OwnedRepr<F>>,
         transposed: bool,
-        M: Array2<F>,
+        _M: Array2<F>,
         Dinv: Array1<F>,
     },
 }
@@ -110,7 +111,7 @@ impl<F: Float> EquationsSolver<F> {
         Ok(EquationsSolver::LstSq {
             factor,
             transposed,
-            M,
+            _M: M,
             Dinv,
         }) // TODO can do with buffering, maybe QR
     }
@@ -157,8 +158,8 @@ impl<F: Float> EquationsSolver<F> {
         // [1] Equation 8.28
         // [1] Equation 8.29
         if let (Ok((p, q)), Ok((u, v))) = (
-            self.sym_solve(&problem.A(), &problem.c(), &problem.b()),
-            self.sym_solve(&problem.A(), &(&rhat.d - &(&rhat.xs / x)), &rhat.p),
+            self.sym_solve(problem.A(), problem.c(), problem.b()),
+            self.sym_solve(problem.A(), &(&rhat.d - &(&rhat.xs / x)), &rhat.p),
         ) {
             if p.fold(false, |acc, e| acc || e.is_nan())
                 || q.fold(false, |acc, e| acc || e.is_nan())

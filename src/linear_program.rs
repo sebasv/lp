@@ -10,7 +10,7 @@ pub struct Problem<F> {
 }
 
 impl<F: Float> Problem<F> {
-    pub fn target<'a>(c: &'a Array1<F>) -> ProblemBuilder<'a, F> {
+    pub fn target(c: &Array1<F>) -> ProblemBuilder<F> {
         ProblemBuilder::new(c)
     }
 
@@ -38,7 +38,7 @@ impl<F: Float> Problem<F> {
         self.c.dot(x_slack) + self.c0
     }
 
-    pub(crate) fn into_denormalized(&self, x_slack: Array1<F>) -> Array1<F> {
+    pub(crate) fn denormalize_x_into(&self, x_slack: Array1<F>) -> Array1<F> {
         x_slack
             .slice(s![..x_slack.len() - self.n_slack])
             .into_owned()

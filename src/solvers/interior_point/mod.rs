@@ -39,7 +39,7 @@ pub struct InteriorPointBuilder<F> {
 }
 
 impl<F: Float> InteriorPointBuilder<F> {
-    pub fn new() -> InteriorPointBuilder<F> {
+    pub(crate) fn new() -> InteriorPointBuilder<F> {
         InteriorPointBuilder {
             tol: F::cast(1e-8),
             disp: false,
@@ -124,6 +124,7 @@ impl<F: Float> InteriorPointBuilder<F> {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub struct InteriorPoint<F> {
     tol: F,
     disp: bool,
@@ -131,6 +132,12 @@ pub struct InteriorPoint<F> {
     solver_type: EquationSolverType,
     alpha0: F,
     max_iter: usize,
+}
+
+impl<F: Float> Default for InteriorPoint<F> {
+    fn default() -> Self {
+        InteriorPointBuilder::new().build().unwrap()
+    }
 }
 
 impl<F: Float> InteriorPoint<F> {
@@ -152,13 +159,13 @@ impl<F: Float> InteriorPoint<F> {
     ///     .ub(&A_ub, &b_ub)
     ///     .build()
     ///     .unwrap();
-    /// let solver = InteriorPoint::default().build().unwrap();
+    /// let solver = InteriorPoint::custom().build().unwrap();
     /// let res = solver.solve(&problem).unwrap();
     ///
     /// assert_abs_diff_eq!(*res.x(), array![4., 0.], epsilon = 1e-6);
     ///
     /// ```
-    pub fn default() -> InteriorPointBuilder<F> {
+    pub fn custom() -> InteriorPointBuilder<F> {
         InteriorPointBuilder::new()
     }
 
@@ -167,7 +174,7 @@ impl<F: Float> InteriorPoint<F> {
         let (x_slack, iteration) = self.ip_hsd(problem)?;
         // Eliminate artificial variables, re-introduce presolved variables, etc.
         let fun = problem.denormalize_target(&x_slack);
-        let x = problem.into_denormalized(x_slack);
+        let x = problem.denormalize_x_into(x_slack);
         Ok(OptimizeResult::new(x, fun, iteration))
     }
 
@@ -222,6 +229,13 @@ mod tests {
     use ndarray::array;
 
     #[test]
+    fn default_builder_doesnt_panic() {
+        let ip = InteriorPoint::<f64>::default();
+        let ip_long_way_round = InteriorPoint::custom().build().unwrap();
+        assert_eq!(ip, ip_long_way_round);
+    }
+
+    #[test]
     fn test_linprog_builder() {
         let A_ub = array![[-3f64, 1.], [1., 2.]];
         let b_ub = array![6., 4.];
@@ -234,7 +248,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let solver = InteriorPoint::default().build().unwrap();
+        let solver = InteriorPoint::default();
         let res = solver.solve(&problem).unwrap();
 
         assert_abs_diff_eq!(*res.x(), array![1., 0.], epsilon = 1e-6);
@@ -247,7 +261,7 @@ mod tests {
 
         let problem = Problem::target(&c).eq(&A_eq, &b_eq).build().unwrap();
 
-        let solver = InteriorPoint::default().build().unwrap();
+        let solver = InteriorPoint::default();
         let res = solver.solve(&problem).unwrap();
 
         assert_abs_diff_eq!(*res.x(), array![1. / 3., 1. / 3., 4. / 3.], epsilon = 1e-6);
@@ -260,7 +274,7 @@ mod tests {
 
         let problem = Problem::target(&c).ub(&A_ub, &b_ub).build().unwrap();
 
-        let solver = InteriorPoint::default().build().unwrap();
+        let solver = InteriorPoint::default();
         let res = solver.solve(&problem).unwrap();
 
         assert_abs_diff_eq!(*res.x(), array![0.5, 0.0, 1.25], epsilon = 1e-6);
