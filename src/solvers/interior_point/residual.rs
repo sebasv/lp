@@ -1,7 +1,7 @@
 use ndarray::Array1;
 
 use crate::float::Float;
-use crate::interior_point::linprog::Problem;
+use crate::linear_program::Problem;
 pub(crate) struct Residuals<F> {
     pub(crate) rho_p: F,
     pub(crate) rho_d: F,
@@ -20,12 +20,13 @@ impl<F: Float> Residuals<F> {
     ) -> Residuals<F> {
         // See [1], Section 4 - The Homogeneous Algorithm, Equation 8.8
         let norm = |a: &Array1<F>| a.dot(a).sqrt();
-        let r_p = |x: &Array1<F>, tau: F| norm(&(&(&problem.b * tau) - &problem.A.dot(x)));
+        let r_p = |x: &Array1<F>, tau: F| norm(&(&(problem.b() * tau) - &problem.A().dot(x)));
         let r_d = |y: &Array1<F>, z: &Array1<F>, tau: F| {
-            norm(&(&(&problem.c * tau) - &problem.A.t().dot(y) - z))
+            norm(&(&(problem.c() * tau) - &problem.A().t().dot(y) - z))
         };
-        let r_g =
-            |x: &Array1<F>, y: &Array1<F>, kappa: F| kappa + problem.c.dot(x) - problem.b.dot(y);
+        let r_g = |x: &Array1<F>, y: &Array1<F>, kappa: F| {
+            kappa + problem.c().dot(x) - problem.b().dot(y)
+        };
         let mu = |x: &Array1<F>, tau: F, z: &Array1<F>, kappa: F| {
             (x.dot(z) + tau * kappa) / F::cast(x.len() + 1)
         };

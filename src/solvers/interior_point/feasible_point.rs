@@ -5,15 +5,13 @@ use ndarray::Array1;
 
 use crate::error::LinearProgramError;
 
-use super::equations_solver::EquationSolverType;
+use super::newton_equations::EquationSolverType;
 
 use ndarray::Zip;
 
 use super::delta::Delta;
 
-use super::linprog::Indicators;
-
-use super::linprog::Problem;
+use crate::linear_program::Problem;
 
 use super::residual::Residuals;
 
@@ -30,7 +28,7 @@ pub(crate) struct FeasiblePoint<F> {
 
 impl<F: Float> FeasiblePoint<F> {
     pub(crate) fn blind_start(problem: &Problem<F>) -> FeasiblePoint<F> {
-        let (m, n) = problem.A.dim();
+        let (m, n) = problem.A().dim();
         let x = Array1::ones(n);
         let y = Array1::zeros(m);
         let z = Array1::ones(n);
@@ -47,24 +45,6 @@ impl<F: Float> FeasiblePoint<F> {
     }
     pub(crate) fn residuals(&self, problem: &Problem<F>) -> Residuals<F> {
         Residuals::calculate(problem, &self.x, &self.y, &self.z, self.tau, self.kappa)
-    }
-
-    /// [1] 4.5
-    pub(crate) fn indicators(&self, problem: &Problem<F>) -> Indicators<F> {
-        let obj = problem.c.dot(&(&self.x / self.tau)) + problem.c0;
-        let bty = problem.b.t().dot(&self.y);
-        let rho_A = (problem.c.t().dot(&self.x) - bty).abs()
-            / (self.tau + problem.b.t().dot(&self.y).abs());
-        let residuals = self.residuals(problem);
-        Indicators {
-            rho_p: residuals.rho_p / self.initial_residuals.rho_p.max(F::one()),
-            rho_d: residuals.rho_d / self.initial_residuals.rho_d.max(F::one()),
-            rho_A,
-            rho_g: residuals.rho_g / self.initial_residuals.rho_g.max(F::one()),
-            rho_mu: residuals.rho_mu / self.initial_residuals.rho_mu,
-            obj,
-            bty,
-        }
     }
 
     #[inline]
@@ -145,9 +125,9 @@ impl<F: Float> FeasiblePoint<F> {
         let mut gamma = if ip { F::one() } else { F::zero() };
         let mut eta = if ip { F::one() } else { F::one() - gamma };
         // [1] Equation 8.8
-        let r_P = &(&problem.b * self.tau) - &problem.A.dot(&self.x);
-        let r_D = &(&problem.c * self.tau) - &problem.A.t().dot(&self.y) - &self.z;
-        let r_G = problem.c.dot(&self.x) - problem.b.t().dot(&self.y) + self.kappa;
+        let r_P = &(problem.b() * self.tau) - &problem.A().dot(&self.x);
+        let r_D = &(problem.c() * self.tau) - &problem.A().t().dot(&self.y) - &self.z;
+        let r_G = problem.c().dot(&self.x) - problem.b().t().dot(&self.y) + self.kappa;
         let mu = (self.x.dot(&self.z) + self.tau * self.kappa) / F::cast(n_x + 1);
 
         let initial_solver = solver_type

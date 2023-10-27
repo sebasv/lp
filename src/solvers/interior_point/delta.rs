@@ -3,11 +3,11 @@ use crate::error::LinearProgramError;
 
 use ndarray::Array2;
 
-use super::equations_solver::EquationsSolver;
+use super::newton_equations::EquationsSolver;
 
 use super::feasible_point::FeasiblePoint;
-use super::linprog::Problem;
 use super::rhat::Rhat;
+use crate::linear_program::Problem;
 
 use crate::float::Float;
 
@@ -31,9 +31,9 @@ impl<F: Float> Delta<F> {
         let (newton, new_solver) = solver.solve_newton_equations(problem, &point.x, rhat)?;
         // [1] Results after 8.29
         let d_tau = (rhat.g + F::one() / point.tau * rhat.tk
-            - (-problem.c.dot(&newton.u) + problem.b.dot(&newton.v)))
+            - (-problem.c().dot(&newton.u) + problem.b().dot(&newton.v)))
             / (F::one() / point.tau * point.kappa
-                + (-problem.c.dot(&newton.p) + problem.b.dot(&newton.q)));
+                + (-problem.c().dot(&newton.p) + problem.b().dot(&newton.q)));
         let d_x = newton.u + newton.p * d_tau;
         let d_y = newton.v + newton.q * d_tau;
 

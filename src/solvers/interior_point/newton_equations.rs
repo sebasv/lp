@@ -9,7 +9,7 @@ use ndarray_linalg::SolveH;
 use crate::error::LinearProgramError;
 use linfa_linalg::qr::QR;
 
-use crate::interior_point::linprog::Problem;
+use crate::linear_program::Problem;
 
 use ndarray::Array1;
 use ndarray::Axis;
@@ -48,8 +48,8 @@ impl EquationSolverType {
         //  Assemble M from [1] Equation 8.31
         let Dinv = &point.x / &point.z;
         let M = problem
-            .A
-            .dot(&(&Dinv.clone().insert_axis(ndarray::Axis(1)) * &problem.A.t()));
+            .A()
+            .dot(&(&Dinv.clone().insert_axis(ndarray::Axis(1)) * &problem.A().t()));
         match self {
             EquationSolverType::Cholesky => EquationsSolver::cholesky(M, Dinv),
             EquationSolverType::Inverse => EquationsSolver::inv(M, Dinv),
@@ -157,8 +157,8 @@ impl<F: Float> EquationsSolver<F> {
         // [1] Equation 8.28
         // [1] Equation 8.29
         if let (Ok((p, q)), Ok((u, v))) = (
-            self.sym_solve(&problem.A, &problem.c, &problem.b),
-            self.sym_solve(&problem.A, &(&rhat.d - &(&rhat.xs / x)), &rhat.p),
+            self.sym_solve(&problem.A(), &problem.c(), &problem.b()),
+            self.sym_solve(&problem.A(), &(&rhat.d - &(&rhat.xs / x)), &rhat.p),
         ) {
             if p.fold(false, |acc, e| acc || e.is_nan())
                 || q.fold(false, |acc, e| acc || e.is_nan())
@@ -190,15 +190,15 @@ impl<F: Float> EquationsSolver<F> {
         r1: &Array1<F>,
         r2: &Array1<F>,
     ) -> Result<(Array1<F>, Array1<F>), LinalgError> {
-        let r = r2 + &A.dot(&(self.unpack_Dinv() * r1));
+        let r = r2 + &A.dot(&(self.Dinv() * r1));
         let v = self.solve(&r)?;
         // [1] 8.32
-        let u = self.unpack_Dinv() * &(A.t().dot(&v) - r1);
+        let u = self.Dinv() * &(A.t().dot(&v) - r1);
         Ok((u, v))
     }
 
     #[inline]
-    fn unpack_Dinv(&self) -> &Array1<F> {
+    fn Dinv(&self) -> &Array1<F> {
         match self {
             EquationsSolver::Cholesky { Dinv, .. }
             | EquationsSolver::Inv { Dinv, .. }
