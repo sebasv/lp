@@ -15,7 +15,17 @@ keywords = ["linear-programming", "constrained", "optimization"]
 categories = ["algorithms", "mathematics", "science"]
 
 [features]
-blas = ["ndarray-linalg"]
+default = []
+netlib-static = ["blas", "ndarray-linalg/netlib-static"]
+netlib-system = ["blas", "ndarray-linalg/netlib-system"]
+
+openblas-static = ["blas", "ndarray-linalg/openblas-static"]
+openblas-system = ["blas", "ndarray-linalg/openblas-system"]
+
+intel-mkl-static = ["blas", "ndarray-linalg/intel-mkl-static"]
+intel-mkl-system = ["blas", "ndarray-linalg/intel-mkl-system"]
+
+blas = ["ndarray/blas"]
 
 [dependencies]
 linfa-linalg = "0.1.0"
@@ -25,5 +35,5 @@ num-traits = "0.2.16"
 thiserror = "1.0.49"
 approx = "0.5.1"
 
-[dev-dependencies]
-ndarray-linalg = { version = "0.16.0", features = ["openblas-system"] }
+[profile.release]
+opt-level = 3
