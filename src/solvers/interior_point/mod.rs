@@ -236,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn test_linprog_builder() {
+    fn test_interior_point_builder() {
         let A_ub = array![[-3f64, 1.], [1., 2.]];
         let b_ub = array![6., 4.];
         let A_eq = array![[1., 1.]];
@@ -253,6 +253,51 @@ mod tests {
 
         assert_abs_diff_eq!(*res.x(), array![1., 0.], epsilon = 1e-6);
     }
+
+    #[test]
+    fn test_interior_point_inverse_solver() {
+        let A_ub = array![[-3f64, 1.], [1., 2.]];
+        let b_ub = array![6., 4.];
+        let A_eq = array![[1., 1.]];
+        let b_eq = array![1.];
+        let c = array![-1., 4.];
+        let problem = Problem::target(&c)
+            .ub(&A_ub, &b_ub)
+            .eq(&A_eq, &b_eq)
+            .build()
+            .unwrap();
+
+        let solver = InteriorPoint::custom()
+            .solver_type(EquationSolverType::Inverse)
+            .build()
+            .unwrap();
+        let res = solver.solve(&problem).unwrap();
+
+        assert_abs_diff_eq!(*res.x(), array![1., 0.], epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_interior_point_least_squares_solver() {
+        let A_ub = array![[-3f64, 1.], [1., 2.]];
+        let b_ub = array![6., 4.];
+        let A_eq = array![[1., 1.]];
+        let b_eq = array![1.];
+        let c = array![-1., 4.];
+        let problem = Problem::target(&c)
+            .ub(&A_ub, &b_ub)
+            .eq(&A_eq, &b_eq)
+            .build()
+            .unwrap();
+
+        let solver = InteriorPoint::custom()
+            .solver_type(EquationSolverType::LeastSquares)
+            .build()
+            .unwrap();
+        let res = solver.solve(&problem).unwrap();
+
+        assert_abs_diff_eq!(*res.x(), array![1., 0.], epsilon = 1e-6);
+    }
+
     #[test]
     fn test_linprog_eq_only() {
         let A_eq = array![[2.0, 1.0, 0.0], [0.0, 2.0, 1.0], [1.0, 0.0, 2.0],];

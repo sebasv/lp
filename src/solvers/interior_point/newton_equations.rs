@@ -1,7 +1,5 @@
 #![allow(non_snake_case)]
 #[cfg(not(feature = "blas"))]
-use crate::float::Lapack;
-#[cfg(not(feature = "blas"))]
 use linfa_linalg::{
     cholesky::Cholesky,
     cholesky::SolveCInplace,
@@ -10,9 +8,9 @@ use linfa_linalg::{
 };
 #[cfg(feature = "blas")]
 use ndarray_linalg::{
-    error::LinalgError, FactorizeC, LeastSquaresSvdInto, QRSquare, SolveC, QR, UPLO,
+    error::LinalgError, CholeskyFactorized, Factorize, FactorizeC, LUFactorized, LeastSquaresSvd,
+    LeastSquaresSvdInto, QRSquare, Solve, SolveC, QR, UPLO,
 };
-use ndarray_linalg::{CholeskyFactorized, Factorize, LUFactorized, LeastSquaresSvd, Solve};
 
 use ndarray::prelude::*;
 use ndarray::OwnedRepr;
@@ -104,7 +102,6 @@ impl<F: Float> EquationsSolver<F> {
 #[cfg(not(feature = "blas"))]
 pub(crate) enum EquationsSolver<F> {
     Cholesky {
-        factor: CholeskyFactorized<OwnedRepr<F>>,
         factor: Array2<F>,
         M: Array2<F>,
         Dinv: Array1<F>,

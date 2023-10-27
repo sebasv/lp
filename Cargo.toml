@@ -15,7 +15,6 @@ keywords = ["linear-programming", "constrained", "optimization"]
 categories = ["algorithms", "mathematics", "science"]
 
 [features]
-default = ["blas"]
 blas = ["ndarray-linalg"]
 
 [dependencies]

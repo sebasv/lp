@@ -4,6 +4,10 @@ use ndarray_linalg::Lapack;
 use num_traits::NumCast;
 #[cfg(not(feature = "blas"))]
 pub trait Lapack {}
+#[cfg(not(feature = "blas"))]
+impl Lapack for f64 {}
+#[cfg(not(feature = "blas"))]
+impl Lapack for f32 {}
 
 pub trait Float: NdFloat + Lapack {
     fn cast<T: NumCast>(x: T) -> Self {
