@@ -19,7 +19,7 @@ impl<F: Float> Residuals<F> {
         kappa: F,
     ) -> Residuals<F> {
         // See [1], Section 4 - The Homogeneous Algorithm, Equation 8.8
-        let norm = |a: &Array1<F>| Float::sqrt(a.dot(a));
+        let norm = |a: &Array1<F>| a.dot(a).sqrt();
         let r_p = |x: &Array1<F>, tau: F| norm(&(&(problem.b() * tau) - &problem.A().dot(x)));
         let r_d = |y: &Array1<F>, z: &Array1<F>, tau: F| {
             norm(&(&(problem.c() * tau) - &problem.A().t().dot(y) - z))
@@ -33,7 +33,7 @@ impl<F: Float> Residuals<F> {
 
         let rho_p = r_p(x, tau);
         let rho_d = r_d(y, z, tau);
-        let rho_g = Float::abs(r_g(x, y, kappa));
+        let rho_g = r_g(x, y, kappa).abs();
         let rho_mu = mu(x, tau, z, kappa);
         Residuals {
             rho_p,

@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-//! Implementation of the MOSEK [1] interior point solver for linear programs.
+//! Implementation of the MOSEK \[1\] interior point solver for linear programs.
 //! This implementation is a variation of the [Mehrotra predictor-corrector method](https://en.wikipedia.org/wiki/Mehrotra_predictor%E2%80%93corrector_method).
 //!
 //! This is the same algorithm as the interior point method implemented in the Python package SciPy,
@@ -8,7 +8,7 @@
 //!
 //! This attribution should explicitly not be interpreted as an endorsement from SciPy or its maintainers.
 //!
-//! .. [1] Andersen, Erling D., and Knud D. Andersen. "The MOSEK interior point
+//! .. \[1\] Andersen, Erling D., and Knud D. Andersen. "The MOSEK interior point
 //!        optimizer for linear programming: an implementation of the
 //!        homogeneous algorithm." High performance optimization. Springer US,
 //!        2000. 197-232.
@@ -28,6 +28,8 @@ use crate::linear_program::{OptimizeResult, Problem};
 use feasible_point::FeasiblePoint;
 use indicators::{Indicators, Status};
 pub use newton_equations::EquationSolverType;
+
+use crate::traits::Solver;
 
 pub struct InteriorPointBuilder<F> {
     tol: F,
@@ -135,8 +137,19 @@ pub struct InteriorPoint<F> {
 }
 
 impl<F: Float> Default for InteriorPoint<F> {
+    /// The interior point solver with default configuration.
     fn default() -> Self {
         InteriorPointBuilder::new().build().unwrap()
+    }
+}
+
+impl<F: Float> Solver<F> for InteriorPoint<F> {
+    fn solve(&self, problem: &Problem<F>) -> Result<OptimizeResult<F>, LinearProgramError<F>> {
+        let (x_slack, iteration) = self.solve_normal_form(problem)?;
+        // Eliminate artificial variables, re-introduce presolved variables, etc.
+        let fun = problem.denormalize_target(&x_slack);
+        let x = problem.denormalize_x_into(x_slack);
+        Ok(OptimizeResult::new(x, fun, iteration))
     }
 }
 
@@ -146,9 +159,8 @@ impl<F: Float> InteriorPoint<F> {
     ///
     /// ```rust
     /// use approx::assert_abs_diff_eq;
-    /// use lp::Problem;
+    /// use lp::prelude::*;
     /// use ndarray::array;
-    /// use lp::solvers::InteriorPoint;
     ///
     ///
     /// let A_ub = array![[-3f64, 1.], [1., 2.]];
@@ -169,16 +181,10 @@ impl<F: Float> InteriorPoint<F> {
         InteriorPointBuilder::new()
     }
 
-    /// Attempt to solve the linear program.
-    pub fn solve(&self, problem: &Problem<F>) -> Result<OptimizeResult<F>, LinearProgramError<F>> {
-        let (x_slack, iteration) = self.ip_hsd(problem)?;
-        // Eliminate artificial variables, re-introduce presolved variables, etc.
-        let fun = problem.denormalize_target(&x_slack);
-        let x = problem.denormalize_x_into(x_slack);
-        Ok(OptimizeResult::new(x, fun, iteration))
-    }
-
-    fn ip_hsd(&self, problem: &Problem<F>) -> Result<(Array1<F>, usize), LinearProgramError<F>> {
+    fn solve_normal_form(
+        &self,
+        problem: &Problem<F>,
+    ) -> Result<(Array1<F>, usize), LinearProgramError<F>> {
         let mut point = FeasiblePoint::blind_start(problem);
 
         // [1] 4.5
@@ -224,7 +230,6 @@ impl<F: Float> InteriorPoint<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Problem;
     use approx::assert_abs_diff_eq;
     use ndarray::array;
 

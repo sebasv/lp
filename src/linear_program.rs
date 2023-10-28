@@ -119,8 +119,8 @@ impl<'a, F: Float> ProblemBuilder<'a, F> {
     ///
     /// then
     /// min_{x,s} c'x + 0's
-    ///        st [ A_ub I ]'[x] == [b_ub]
-    ///           [ A_eq O ] [s]    [b_eq]
+    ///        st \[ A_ub I \]'\[x\] == \[b_ub\]
+    ///           \[ A_eq O \] \[s\]    \[b_eq\]
     ///                      x,s >= 0
     ///
     /// is the analogous problem with only equality constraints.

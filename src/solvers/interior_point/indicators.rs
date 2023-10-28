@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use std::fmt::Display;
 
-use crate::{float::Float, Problem};
+use crate::{float::Float, linear_program::Problem};
 
 use super::feasible_point::FeasiblePoint;
 
@@ -40,8 +40,8 @@ impl<F: Float> Indicators<F> {
     ) -> Indicators<F> {
         let obj = problem.c().dot(&(&point.x / point.tau)) + problem.c0();
         let bty = problem.b().t().dot(&point.y);
-        let rho_A = Float::abs(problem.c().t().dot(&point.x) - bty)
-            / (point.tau + Float::abs(problem.b().t().dot(&point.y)));
+        let rho_A = (problem.c().t().dot(&point.x) - bty).abs()
+            / (point.tau + (problem.b().t().dot(&point.y)).abs());
         let residuals = point.residuals(problem);
         Indicators {
             rho_p: residuals.rho_p / point.initial_residuals.rho_p.max(F::one()),

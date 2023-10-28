@@ -18,10 +18,7 @@
 //! use approx::assert_abs_diff_eq;
 //! use ndarray::array;
 //!
-//! use lp::Problem;
-//! use lp::solvers::InteriorPoint;
-//! use lp::solvers::interior_point::EquationSolverType;
-//!
+//! use lp::prelude::*;
 //!
 //! let A_ub = array![[-3f64, 1.], [1., 2.]];
 //! let b_ub = array![6., 4.];
@@ -55,23 +52,33 @@
 //! ```
 //!
 //! # Feature flags
+//! ### `[linfa-linalg]` backend for pure-rust linear algebra:
+//! This feature is enabled by default. Disable this if you opt for one of the LAPACK options below.
+//! For details on this backend, see the documentation of [`linfa-linalg`](https://docs.rs/linfa-linalg/).
 //!
-//! ### `[blas]`
-//! This package comes with the option to use BLAS-based solvers for systems of equations. To enable BLAS, set the `blas`
-//! feature.
+//! ### LAPACK backend for linear algebra (and BLAS for matrix operations):
+//! * `[netlib-system]`
+//! * `[netlib-system]`
+//! * `[openblas-static]`
+//! * `[openblas-system]`
+//! * `[intel-mkl-static]`
+//! * `[intel-mkl-system]`
+//!
+//! If you don't mind compiling and/or linking one of the reference LAPACK implementations, then one of these options
+//! is for you. These features are forwarded to [`ndarray-linalg`](https://github.com/rust-ndarray/ndarray-linalg),
+//! see their documentation for details on how to compile/link each backend.
 
 pub mod error;
 pub(crate) mod float;
 pub mod linear_program;
+pub mod prelude;
 pub mod solvers;
-
-// pub use interior_point::linprog::{EquationSolverType, InteriorPoint};
-pub use linear_program::{OptimizeResult, Problem, ProblemBuilder};
+pub mod traits;
 
 #[allow(non_snake_case)]
 #[cfg(test)]
 mod tests {
-    use crate::Problem;
+    use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     use ndarray::array;
 
@@ -99,7 +106,6 @@ mod tests {
 
     #[test]
     fn test_interior_point_interface() {
-        use crate::solvers::InteriorPoint;
         let problem = make_problem();
         let solver = InteriorPoint::custom().build().unwrap();
         let res = solver.solve(&problem).unwrap();

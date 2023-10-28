@@ -1,21 +1,15 @@
 #![allow(non_snake_case)]
-use super::rhat::Rhat;
-
 use ndarray::Array1;
-
-use crate::error::LinearProgramError;
-
-use super::newton_equations::EquationSolverType;
-
 use ndarray::Zip;
 
-use super::delta::Delta;
-
+use crate::error::LinearProgramError;
+use crate::float::Float;
 use crate::linear_program::Problem;
 
+use super::delta::Delta;
+use super::newton_equations::EquationSolverType;
 use super::residual::Residuals;
-
-use crate::float::Float;
+use super::rhat::Rhat;
 
 pub(crate) struct FeasiblePoint<F> {
     pub(crate) x: Array1<F>,
@@ -166,6 +160,6 @@ fn update_gamma<F: Float>(ip: bool, alpha: F) -> F {
     } else {
         // predictor-corrector, [1] definition after 8.12
         let beta1 = F::cast(0.1); // [1] pg. 220 (Table 8.1)
-        Float::powi(F::one() - alpha, 2) * beta1.min(F::one() - alpha)
+        (F::one() - alpha).powi(2) * beta1.min(F::one() - alpha)
     }
 }
