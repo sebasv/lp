@@ -1,0 +1,12 @@
+[target.'cfg(all())']
+rustflags = [
+    # BEGIN - Embark standard lints v0.4
+    # do not change or add/remove here, but one can add exceptions after this section
+    # for more info see: <https://github.com/EmbarkStudios/rust-ecosystem/issues/59>
+    "-Dunsafe_code",
+    "-Wrustdoc::missing_crate_level_docs",
+    "-Wmissing_docs",
+    "-Wclippy::all",
+    "-Wclippy::await_holding_lock",
+    "-Wclippy::char_lit_as_u8",
+]

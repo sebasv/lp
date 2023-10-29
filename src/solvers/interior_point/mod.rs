@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-//! Implementation of the MOSEK [1] interior point solver for linear programs.
+//! Implementation of the MOSEK \[1\] interior point solver for linear programs.
 //! This implementation is a variation of the [Mehrotra predictor-corrector method](https://en.wikipedia.org/wiki/Mehrotra_predictor%E2%80%93corrector_method).
 //!
 //! This is the same algorithm as the interior point method implemented in the Python package SciPy,
@@ -8,7 +8,7 @@
 //!
 //! This attribution should explicitly not be interpreted as an endorsement from SciPy or its maintainers.
 //!
-//! .. [1] Andersen, Erling D., and Knud D. Andersen. "The MOSEK interior point
+//! .. \[1\] Andersen, Erling D., and Knud D. Andersen. "The MOSEK interior point
 //!        optimizer for linear programming: an implementation of the
 //!        homogeneous algorithm." High performance optimization. Springer US,
 //!        2000. 197-232.
@@ -24,11 +24,20 @@ use crate::error::LinearProgramError;
 use crate::float::Float;
 use ndarray::Array1;
 
-use crate::linear_program::{OptimizeResult, Problem};
+use crate::linear_program::Problem;
 use feasible_point::FeasiblePoint;
 use indicators::{Indicators, Status};
 pub use newton_equations::EquationSolverType;
 
+use crate::solvers::Solver;
+
+use super::OptimizeResult;
+
+/// Builder struct to customize the [`InteriorPoint`] solver.
+///
+/// After constructing the default solver with [`InteriorPointBuilder::new]`,
+/// use the other methods to update specific settings, and finally call [`build`](InteriorPointBuilder::build) to validate
+/// the customized settings and create the solver.
 pub struct InteriorPointBuilder<F> {
     tol: F,
     disp: bool,
@@ -108,10 +117,14 @@ impl<F: Float> InteriorPointBuilder<F> {
     /// Returns an `InvalidParameter` error if one of the input constraints is violated.
     pub fn build(self) -> Result<InteriorPoint<F>, LinearProgramError<F>> {
         if self.alpha0 <= F::zero() || self.alpha0 >= F::one() {
-            return Err(LinearProgramError::InvalidParameter);
+            return Err(LinearProgramError::InvalidParameter(
+                "Alpha0 must be between 0 and 1 (exclusive)",
+            ));
         }
         if self.tol <= F::zero() {
-            return Err(LinearProgramError::InvalidParameter);
+            return Err(LinearProgramError::InvalidParameter(
+                "The tolerance must be nonnegative.",
+            ));
         }
         Ok(InteriorPoint {
             tol: self.tol,
@@ -125,6 +138,10 @@ impl<F: Float> InteriorPointBuilder<F> {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+/// Interior point struct that can be used to solve linear programs.
+///
+/// To get started quickly, use the [`default`](InteriorPoint::default()) method to initialize the solver with default parameters.
+/// See the [`custom`](InteriorPoint::custom()) for customization options through the builder pattern.
 pub struct InteriorPoint<F> {
     tol: F,
     disp: bool,
@@ -135,8 +152,19 @@ pub struct InteriorPoint<F> {
 }
 
 impl<F: Float> Default for InteriorPoint<F> {
+    /// The interior point solver with default configuration.
     fn default() -> Self {
         InteriorPointBuilder::new().build().unwrap()
+    }
+}
+
+impl<F: Float> Solver<F> for InteriorPoint<F> {
+    fn solve(&self, problem: &Problem<F>) -> Result<OptimizeResult<F>, LinearProgramError<F>> {
+        let (x_slack, iteration) = self.solve_normal_form(problem)?;
+        // Eliminate artificial variables, re-introduce presolved variables, etc.
+        let fun = problem.denormalize_target(&x_slack);
+        let x = problem.denormalize_x_into(x_slack);
+        Ok(OptimizeResult::new(x, fun, iteration))
     }
 }
 
@@ -146,9 +174,8 @@ impl<F: Float> InteriorPoint<F> {
     ///
     /// ```rust
     /// use approx::assert_abs_diff_eq;
-    /// use lp::Problem;
+    /// use ripped::prelude::*;
     /// use ndarray::array;
-    /// use lp::solvers::InteriorPoint;
     ///
     ///
     /// let A_ub = array![[-3f64, 1.], [1., 2.]];
@@ -169,29 +196,21 @@ impl<F: Float> InteriorPoint<F> {
         InteriorPointBuilder::new()
     }
 
-    /// Attempt to solve the linear program.
-    pub fn solve(&self, problem: &Problem<F>) -> Result<OptimizeResult<F>, LinearProgramError<F>> {
-        let (x_slack, iteration) = self.ip_hsd(problem)?;
-        // Eliminate artificial variables, re-introduce presolved variables, etc.
-        let fun = problem.denormalize_target(&x_slack);
-        let x = problem.denormalize_x_into(x_slack);
-        Ok(OptimizeResult::new(x, fun, iteration))
-    }
-
-    fn ip_hsd(&self, problem: &Problem<F>) -> Result<(Array1<F>, usize), LinearProgramError<F>> {
+    fn solve_normal_form(
+        &self,
+        problem: &Problem<F>,
+    ) -> Result<(Array1<F>, usize), LinearProgramError<F>> {
         let mut point = FeasiblePoint::blind_start(problem);
 
         // [1] 4.5
         let indicators = Indicators::from_point_and_problem(&point, problem);
 
         if self.disp {
-            println!(
-                " alpha     \t rho_p     \t rho_d     \t rho_g     \t rho_mu    \t obj       "
-            );
-            println!("1.0\\t{indicators}");
+            println!("alpha     \trho_p     \trho_d     \trho_g     \trho_mu    \tobj       ");
+            println!("1.00000000\t{indicators}");
         }
         let mut ip = self.ip;
-        for iteration in 0..self.max_iter {
+        for iteration in 1..=self.max_iter {
             // Solve [1] 8.6 and 8.7/8.13/8.23
             let delta = point.get_delta(problem, &self.solver_type, ip)?;
             let alpha = if ip {
@@ -206,7 +225,7 @@ impl<F: Float> InteriorPoint<F> {
             let indicators = Indicators::from_point_and_problem(&point, problem);
 
             if self.disp {
-                println!("{alpha}\\t{indicators}");
+                println!("{alpha:3.8}\t{indicators}");
             }
             match indicators.status(point.tau, point.kappa, self.tol) {
                 Status::Optimal => return Ok((&point.x / point.tau, iteration)),
@@ -224,7 +243,6 @@ impl<F: Float> InteriorPoint<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Problem;
     use approx::assert_abs_diff_eq;
     use ndarray::array;
 

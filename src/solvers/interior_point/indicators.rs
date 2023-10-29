@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use std::fmt::Display;
 
-use crate::{float::Float, Problem};
+use crate::{float::Float, linear_program::Problem};
 
 use super::feasible_point::FeasiblePoint;
 
@@ -26,7 +26,7 @@ impl<F: Display> Display for Indicators<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{:3.8}\\t{:3.8}\\t{:3.8}\\t{:3.8}\\t{:8.3}",
+            "{:3.8}\t{:3.8}\t{:3.8}\t{:3.8}\t{:8.3}",
             self.rho_p, self.rho_d, self.rho_g, self.rho_mu, self.obj
         )
     }

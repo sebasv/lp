@@ -49,14 +49,14 @@ impl<F: Float> Rhat<F> {
         // Reference [1] Eq. 8.6
 
         let (rhatxs, rhattk) = if ip {
+            let alpha_2 = Float::powi(alpha, 2);
             // Reference [1] Eq. 8.23
             (
-                &(&point.x * -F::one()) * &point.z
-                    - &(&delta.d_x * &delta.d_z) * Float::powi(alpha, 2)
+                &(&point.x * -F::one()) * &point.z - &(&delta.d_x * &delta.d_z) * alpha_2
                     + (F::one() - alpha) * gamma * mu,
                 (F::one() - alpha) * gamma * mu
                     - point.tau * point.kappa
-                    - Float::powi(alpha, 2) * delta.d_tau * delta.d_kappa,
+                    - alpha_2 * delta.d_tau * delta.d_kappa,
             )
         } else {
             (

@@ -1,21 +1,15 @@
 #![allow(non_snake_case)]
-use super::rhat::Rhat;
-
 use ndarray::Array1;
-
-use crate::error::LinearProgramError;
-
-use super::newton_equations::EquationSolverType;
-
 use ndarray::Zip;
 
-use super::delta::Delta;
-
+use crate::error::LinearProgramError;
+use crate::float::Float;
 use crate::linear_program::Problem;
 
+use super::delta::Delta;
+use super::newton_equations::EquationSolverType;
 use super::residual::Residuals;
-
-use crate::float::Float;
+use super::rhat::Rhat;
 
 pub(crate) struct FeasiblePoint<F> {
     pub(crate) x: Array1<F>,
