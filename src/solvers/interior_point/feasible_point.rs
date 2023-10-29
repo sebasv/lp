@@ -160,6 +160,6 @@ fn update_gamma<F: Float>(ip: bool, alpha: F) -> F {
     } else {
         // predictor-corrector, [1] definition after 8.12
         let beta1 = F::cast(0.1); // [1] pg. 220 (Table 8.1)
-        (F::one() - alpha).powi(2) * beta1.min(F::one() - alpha)
+        Float::powi(F::one() - alpha, 2) * beta1.min(F::one() - alpha)
     }
 }

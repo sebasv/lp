@@ -24,13 +24,20 @@ use crate::error::LinearProgramError;
 use crate::float::Float;
 use ndarray::Array1;
 
-use crate::linear_program::{OptimizeResult, Problem};
+use crate::linear_program::Problem;
 use feasible_point::FeasiblePoint;
 use indicators::{Indicators, Status};
 pub use newton_equations::EquationSolverType;
 
-use crate::traits::Solver;
+use crate::solvers::Solver;
 
+use super::OptimizeResult;
+
+/// Builder struct to customize the [`InteriorPoint`] solver.
+///
+/// After constructing the default solver with [`InteriorPointBuilder::new]`,
+/// use the other methods to update specific settings, and finally call [`build`](InteriorPointBuilder::build) to validate
+/// the customized settings and create the solver.
 pub struct InteriorPointBuilder<F> {
     tol: F,
     disp: bool,
@@ -110,10 +117,14 @@ impl<F: Float> InteriorPointBuilder<F> {
     /// Returns an `InvalidParameter` error if one of the input constraints is violated.
     pub fn build(self) -> Result<InteriorPoint<F>, LinearProgramError<F>> {
         if self.alpha0 <= F::zero() || self.alpha0 >= F::one() {
-            return Err(LinearProgramError::InvalidParameter);
+            return Err(LinearProgramError::InvalidParameter(
+                "Alpha0 must be between 0 and 1 (exclusive)",
+            ));
         }
         if self.tol <= F::zero() {
-            return Err(LinearProgramError::InvalidParameter);
+            return Err(LinearProgramError::InvalidParameter(
+                "The tolerance must be nonnegative.",
+            ));
         }
         Ok(InteriorPoint {
             tol: self.tol,
@@ -127,6 +138,10 @@ impl<F: Float> InteriorPointBuilder<F> {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+/// Interior point struct that can be used to solve linear programs.
+///
+/// To get started quickly, use the [`default`](InteriorPoint::default()) method to initialize the solver with default parameters.
+/// See the [`custom`](InteriorPoint::custom()) for customization options through the builder pattern.
 pub struct InteriorPoint<F> {
     tol: F,
     disp: bool,
@@ -191,13 +206,11 @@ impl<F: Float> InteriorPoint<F> {
         let indicators = Indicators::from_point_and_problem(&point, problem);
 
         if self.disp {
-            println!(
-                " alpha     \t rho_p     \t rho_d     \t rho_g     \t rho_mu    \t obj       "
-            );
-            println!("1.0\\t{indicators}");
+            println!("alpha     \trho_p     \trho_d     \trho_g     \trho_mu    \tobj       ");
+            println!("1.00000000\t{indicators}");
         }
         let mut ip = self.ip;
-        for iteration in 0..self.max_iter {
+        for iteration in 1..=self.max_iter {
             // Solve [1] 8.6 and 8.7/8.13/8.23
             let delta = point.get_delta(problem, &self.solver_type, ip)?;
             let alpha = if ip {
@@ -212,7 +225,7 @@ impl<F: Float> InteriorPoint<F> {
             let indicators = Indicators::from_point_and_problem(&point, problem);
 
             if self.disp {
-                println!("{alpha}\\t{indicators}");
+                println!("{alpha:3.8}\t{indicators}");
             }
             match indicators.status(point.tau, point.kappa, self.tol) {
                 Status::Optimal => return Ok((&point.x / point.tau, iteration)),

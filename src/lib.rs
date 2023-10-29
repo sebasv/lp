@@ -73,7 +73,6 @@ pub(crate) mod float;
 pub mod linear_program;
 pub mod prelude;
 pub mod solvers;
-pub mod traits;
 
 #[allow(non_snake_case)]
 #[cfg(test)]

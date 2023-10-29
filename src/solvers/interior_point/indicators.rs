@@ -26,7 +26,7 @@ impl<F: Display> Display for Indicators<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{:3.8}\\t{:3.8}\\t{:3.8}\\t{:3.8}\\t{:8.3}",
+            "{:3.8}\t{:3.8}\t{:3.8}\t{:3.8}\t{:8.3}",
             self.rho_p, self.rho_d, self.rho_g, self.rho_mu, self.obj
         )
     }
@@ -40,8 +40,8 @@ impl<F: Float> Indicators<F> {
     ) -> Indicators<F> {
         let obj = problem.c().dot(&(&point.x / point.tau)) + problem.c0();
         let bty = problem.b().t().dot(&point.y);
-        let rho_A = (problem.c().t().dot(&point.x) - bty).abs()
-            / (point.tau + (problem.b().t().dot(&point.y)).abs());
+        let rho_A = Float::abs(problem.c().t().dot(&point.x) - bty)
+            / (point.tau + Float::abs(problem.b().t().dot(&point.y)));
         let residuals = point.residuals(problem);
         Indicators {
             rho_p: residuals.rho_p / point.initial_residuals.rho_p.max(F::one()),

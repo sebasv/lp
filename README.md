@@ -5,12 +5,12 @@
 
  # Linear programs
 
- A linear program is a mathematical optimization problem defined as (using `@` as the dot product):
+ A linear program is a mathematical optimization problem defined as (using `'` as the dot product):
 
  ```text
-    min_x c @ x
-    st A_eq @ x == b_eq
-       A_ub @ x <= b_ub
+    min_x c ' x
+    st A_eq ' x == b_eq
+       A_ub ' x <= b_ub
               x >= 0
  ```
 
@@ -18,8 +18,7 @@
 
  # Example
  ```rust
- use lp::Problem;
- use lp::solvers::InteriorPoint;
+ use lp::prelude::*;
  use approx::assert_abs_diff_eq;
  use ndarray::array;
 

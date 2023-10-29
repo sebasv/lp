@@ -1,6 +1,26 @@
 #![allow(non_snake_case)]
+//! Definition of a linear program.
+//!
+//! To get started, see the documentation of [`Problem`] on how to build a [`Problem`] through the builder pattern.
 use crate::{error::LinearProgramError, float::Float};
 use ndarray::{concatenate, prelude::*};
+
+/// A linear program in augmented/slack form (with only equality constraints).
+///
+/// Any linear program can be expressed in normal form (with only inequality constraints), slack form (with only equality
+/// constraints), or as a mixture of both.
+/// For more details on these forms, see the [Wiki on linear programming](https://en.wikipedia.org/wiki/Linear_programming).
+/// The slack form is most suited for algorithms such as the simplex algorithm and interior point methods.
+///
+/// To construct a slack form problem from a generic problem, use [`ProblemBuilder::new`] or [`Problem::target`].
+///
+/// Variables throughout this module use the following naming convention for a slack problem:
+/// ```text
+/// min_x c ' x
+/// st    A ' x == b
+///           x >= 0
+/// ```
+/// With `c` the cost vector or target function, and constraints given by matrix `A` and vector `b`.
 pub struct Problem<F> {
     A: Array2<F>,
     b: Array1<F>,
@@ -10,28 +30,32 @@ pub struct Problem<F> {
 }
 
 impl<F: Float> Problem<F> {
+    /// Build a problem in slack form using the builder pattern.
+    ///
+    /// Specify the cost vector `c` for which we will minimize `c'x`.
+    /// Returns a [`ProblemBuilder`] object that can be further configured with equality and inequality constraints.
     pub fn target(c: &Array1<F>) -> ProblemBuilder<F> {
         ProblemBuilder::new(c)
     }
 
+    /// Return the constraint matrix
     pub fn A(&self) -> &Array2<F> {
         &self.A
     }
 
+    /// Return the constraint vector
     pub fn b(&self) -> &Array1<F> {
         &self.b
     }
 
+    /// Return the cost vector
     pub fn c(&self) -> &Array1<F> {
         &self.c
     }
 
-    pub fn c0(&self) -> F {
+    /// Return the constant term from the cost function
+    pub(crate) fn c0(&self) -> F {
         self.c0
-    }
-
-    pub fn n_slack(&self) -> usize {
-        self.n_slack
     }
 
     pub(crate) fn denormalize_target(&self, x_slack: &Array1<F>) -> F {
@@ -45,36 +69,7 @@ impl<F: Float> Problem<F> {
     }
 }
 
-/// Outcome of a successful solve attempt.
-pub struct OptimizeResult<F> {
-    /// The solution vector
-    x: Array1<F>,
-
-    /// The cost function value
-    fun: F,
-
-    // The number of iterations needed to find the solution
-    iteration: usize,
-}
-
-impl<F> OptimizeResult<F> {
-    pub fn new(x: Array1<F>, fun: F, iteration: usize) -> Self {
-        Self { x, fun, iteration }
-    }
-
-    pub fn iteration(&self) -> usize {
-        self.iteration
-    }
-
-    pub fn fun(&self) -> &F {
-        &self.fun
-    }
-
-    pub fn x(&self) -> &Array1<F> {
-        &self.x
-    }
-}
-
+/// Construct a problem in slack form from equality and inequality constraints.
 pub struct ProblemBuilder<'a, F> {
     c: &'a Array1<F>,
     ub: Option<(&'a Array2<F>, &'a Array1<F>)>,
@@ -82,6 +77,7 @@ pub struct ProblemBuilder<'a, F> {
 }
 
 impl<'a, F: Float> ProblemBuilder<'a, F> {
+    /// Start building a problem. Takes the cost vector `c` for which the goal is to minimize `c'x`.
     pub fn new(c: &'a Array1<F>) -> ProblemBuilder<'a, F> {
         ProblemBuilder {
             c,
@@ -90,7 +86,7 @@ impl<'a, F: Float> ProblemBuilder<'a, F> {
         }
     }
 
-    /// Set an upper bound for the problem, such that `A @ x <= b`.
+    /// Set an upper bound for the problem, such that `A ' x <= b`.
     /// Either an upper bound (`ub`), a lower bound (`eq`) or both should be specified.
     /// To prevent numerical problems, it is advisable to remove redundant constraints and to scale all constraints to
     /// roughly the same order of magnitude.
@@ -99,7 +95,7 @@ impl<'a, F: Float> ProblemBuilder<'a, F> {
         self
     }
 
-    /// Set an equality constraint for the problem, such that `A @ x == b`.
+    /// Set an equality constraint for the problem, such that `A ' x == b`.
     /// Either an upper bound (`ub`), a lower bound (`eq`) or both should be specified.
     /// To prevent numerical problems, it is advisable to remove redundant constraints and to scale all constraints to
     /// roughly the same order of magnitude.
@@ -109,7 +105,7 @@ impl<'a, F: Float> ProblemBuilder<'a, F> {
     }
 
     /// Construct a linear program from the provided inputs, validating the input values.
-    /// Converts the problem to standard form.
+    /// Converts the problem to slack form.
     ///
     /// If
     /// min_x c'x

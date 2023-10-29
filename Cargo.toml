@@ -15,7 +15,8 @@ keywords = ["linear-programming", "constrained", "optimization"]
 categories = ["algorithms", "mathematics", "science"]
 
 [features]
-default = ["linfa-linalg"]
+# default = ["linfa-linalg"]
+default = ["openblas-system"]
 
 netlib-static = ["blas", "ndarray-linalg/netlib-static"]
 netlib-system = ["blas", "ndarray-linalg/netlib-system"]

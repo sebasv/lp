@@ -9,7 +9,7 @@ use linfa_linalg::{
 #[cfg(feature = "blas")]
 use ndarray_linalg::{
     error::LinalgError, CholeskyFactorized, Factorize, FactorizeC, LUFactorized, LeastSquaresSvd,
-    LeastSquaresSvdInto, QRSquare, Solve, SolveC, QR, UPLO,
+    Solve, SolveC, UPLO,
 };
 
 use ndarray::prelude::*;
@@ -35,8 +35,13 @@ use super::rhat::Rhat;
 /// such that less fallbacks happen.
 #[derive(PartialEq, Eq, Debug)]
 pub enum EquationSolverType {
+    /// Use a Cholesky decomposition to quickly solve the Newton equations. This is the fastest but also the least
+    /// numerically stable option.
     Cholesky,
+    /// Use a QR factorization (if the pure-rust backend is used) or an LU factorization (if the LAPACK backend is used).
     Inverse,
+    /// Use least squares to solve the Newton equations. This method should be the most stable, but is about twice as
+    /// expensive since the whole solve must be repeated for both the predictor and corrector step.
     LeastSquares,
 }
 impl EquationSolverType {
