@@ -69,7 +69,7 @@
 //! see their documentation for details on how to compile/link each backend.
 
 pub mod error;
-pub(crate) mod float;
+pub mod float;
 pub mod linear_program;
 pub mod prelude;
 pub mod solvers;
