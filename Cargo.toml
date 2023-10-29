@@ -6,7 +6,7 @@ edition = "2021"
 authors = ["Sebastiaan Vermeulen <mail@sebastiaanvermeulen.nl>"]
 
 description = "A pure-Rust Interior-Point solver for linear programs"
-license = "GPLv3"
+license = "GPL-3.0-or-later"
 
 repository = "https://github.com/sebasv/lp"
 readme = "README.md"
