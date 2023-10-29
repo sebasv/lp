@@ -18,7 +18,7 @@
 //! use approx::assert_abs_diff_eq;
 //! use ndarray::array;
 //!
-//! use lp::prelude::*;
+//! use ripped::prelude::*;
 //!
 //! let A_ub = array![[-3f64, 1.], [1., 2.]];
 //! let b_ub = array![6., 4.];

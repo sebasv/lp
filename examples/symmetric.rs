@@ -3,8 +3,8 @@
 //! Due to the symmetry you can verify by hand that the unit vector is the optimal solution.
 
 use approx::assert_abs_diff_eq;
-use lp::prelude::*;
 use ndarray::prelude::*;
+use ripped::prelude::*;
 
 fn main() {
     let problem_size = 1_000;

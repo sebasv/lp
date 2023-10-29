@@ -18,7 +18,7 @@
 
  # Example
  ```rust
- use lp::prelude::*;
+ use ripped::prelude::*;
  use approx::assert_abs_diff_eq;
  use ndarray::array;
 

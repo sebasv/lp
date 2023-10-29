@@ -174,7 +174,7 @@ impl<F: Float> InteriorPoint<F> {
     ///
     /// ```rust
     /// use approx::assert_abs_diff_eq;
-    /// use lp::prelude::*;
+    /// use ripped::prelude::*;
     /// use ndarray::array;
     ///
     ///
