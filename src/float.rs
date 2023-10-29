@@ -8,6 +8,15 @@ pub trait Float: NdFloat {
     fn cast<T: NumCast>(x: T) -> Self {
         NumCast::from(x).unwrap()
     }
+    fn abs(self) -> Self {
+        num_traits::Float::abs(self)
+    }
+    fn sqrt(self) -> Self {
+        num_traits::Float::sqrt(self)
+    }
+    fn powi(self, n: i32) -> Self {
+        num_traits::Float::powi(self, n)
+    }
 }
 #[cfg(feature = "blas")]
 pub trait Float: Lapack + NdFloat {
