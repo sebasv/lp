@@ -28,7 +28,7 @@
  let b_eq = array![1.];
  let c = array![-1., 4.];
 
- let res = Problem::target(&c)
+ let problem = Problem::target(&c)
      .ub(&A_ub, &b_ub)
      .eq(&A_eq, &b_eq)
      .build()
